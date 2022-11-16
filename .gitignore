@@ -1,0 +1,15 @@
+*
+!*/
+!*.*
+*~
+*.o
+[._]*.sw[a-p]
+.netrwhist
+.DS_Store
+tags
+out
+!LICENSE-*
+!README
+!Makefile
+!build
+target/
