@@ -1,8 +1,6 @@
 # TODO:
 ---
 
-- case-insensitivity
-
 - variable support
 
 - proper AST generator + emit

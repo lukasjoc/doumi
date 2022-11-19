@@ -42,7 +42,7 @@ impl Deadfish {
         let mut tokens: Vec<Ops> = Vec::with_capacity(program.len());
         let mut in_comment_scope = false;
         for op in program.chars() {
-            match op {
+            match op.to_ascii_lowercase() {
                 's' => {
                     if in_comment_scope {
                         continue;
