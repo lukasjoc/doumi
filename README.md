@@ -2,7 +2,7 @@
 
 > A very simple text-format based on a [deadfish](https://esolangs.org/wiki/Deadfish) interpreter
 
-Ops Supported:
+Ops Supported (Standard Deadfish only):
 ---
 
 | Op | Description |
@@ -15,7 +15,7 @@ Ops Supported:
 
 Other Features:
 ---
-
+- repl-mode
 - single-line comments
 
 Example:
