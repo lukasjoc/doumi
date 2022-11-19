@@ -13,12 +13,30 @@ enum Ops {
     Reset,
     Square,
     Out,
+    Var
+}
+
+#[derive(Debug)]
+struct ValueOps {
+    kind: Ops,
+    name: Option<Box<String>>,
+    value: Option<Box<Vec<ValueOps>>>,
+}
+
+impl ValueOps {
+    fn new(kind: Ops, name: Option<String>, value: Option<String>) -> Self {
+        Self {
+            kind,
+            name: Some(Box::new(name.unwrap_or_else(None))),
+            value: Some(Box::new(value.unwrap_or_else(None))),
+        }
+    }
 }
 
 #[derive(Default, Debug)]
 struct Deadfish {
     stack: Box<Vec<i64>>,
-    tokens: Vec<Ops>,
+    tokens: Box<Vec<ValueOps>>,
 }
 
 impl Deadfish {
@@ -72,6 +90,19 @@ impl Deadfish {
                         continue;
                     }
                     tokens.push(Ops::Reset)
+                }
+                '(' => {
+                    // scope start
+                }
+                ')' => {
+                    // scope end
+                }
+                '@' => {
+                    // scope identifer parse until ; 
+                },
+                ';' => {
+                    // scope delimiter
+                    // parse until same char or end of scope
                 }
                 // Support for single line comments
                 // # SOME_COMMENT \n

@@ -1,7 +1,8 @@
 # TODO:
 ---
 
-- variable support
+- loops
+- if-else conditions
 
 - proper AST generator + emit
 

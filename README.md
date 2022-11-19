@@ -16,11 +16,18 @@ Ops Supported (Standard Deadfish only):
 Other Features:
 ---
 - repl-mode
-- single-line comments
 
-Example:
-```deadfish
+- single-line comments
+```doumi
 # A comment
 ii
 o # should print 2
+```
+
+- reusable, globally-scoped, mutable variables
+```
+(@var; foo; iissd) # save 15 in this var
+ii
+@foo. # use variable on global stack
+o # 17
 ```

@@ -1,0 +1,9 @@
+# reusable, globally-scoped, mutable variables
+
+(@var; fifteen; iissd)
+
+# use variable with @ notation and ending with a .
+
+ii
+@fifteen.
+o # 17
