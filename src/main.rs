@@ -3,9 +3,10 @@ use std::fs;
 
 #[derive(Debug)]
 enum Ops {
-    Square,
     Dec,
     Inc,
+    Reset,
+    Square,
     Out,
 }
 
@@ -49,6 +50,10 @@ impl Deadfish {
                     if in_comment_scope { continue }
                     tokens.push(Ops::Out)
                 },
+                'r' => {
+                    if in_comment_scope { continue }
+                    tokens.push(Ops::Reset)
+                },
                 // Support for single line comments
                 '#' => {
                     in_comment_scope = true;
@@ -73,10 +78,11 @@ impl Deadfish {
         while token_count < token_size {
             let tok = &self.tokens[token_count];
             match tok {
+                Ops::Reset  => self.stack.push(0),
+                Ops::Dec    => self.stack.push(self.peak() -1),
+                Ops::Inc    => self.stack.push(self.peak() + 1),
                 Ops::Square => self.stack.push(i32::pow(self.peak(), 2)),
-                Ops::Dec => self.stack.push(self.peak() -1),
-                Ops::Inc => self.stack.push(self.peak() + 1),
-                Ops::Out  => println!("{:#?}", self.peak()),
+                Ops::Out    => println!("{:#?}", self.peak()),
             }
 
             // checking for the deadfish intrinsics

@@ -1,10 +1,9 @@
 # TODO:
 
+- case-insensitivity
 - REPL
-- MIRI Target
-
+- LLVM target
 - variable support
-
 - mode support
     - (@mode; mode-type)
 
