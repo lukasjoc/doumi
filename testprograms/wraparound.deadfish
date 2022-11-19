@@ -1,0 +1,8 @@
+# case where we wrap around to 0 again
+
+i # 1
+i # 2
+s # 4
+s # 16
+s # 256
+o # 0

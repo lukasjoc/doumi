@@ -1,13 +1,5 @@
-// TODO: write the simple tokenizer and interpreter
-//  - TODO: Comment Support / Specials
-//  - TODO: Function  Support through Function Composition
-//  - TODO: Variables ?
-// TODO: write REPL
-// TODO: compile to small bytecode
-// TODO: write runtime for the bytecode
-// TODO: compile to miri and compiole to binary through the rust toolchain
-//
-#![allow(dead_code)]
+use std::path::PathBuf;
+use std::fs;
 
 #[derive(Debug)]
 enum Ops {
@@ -15,13 +7,11 @@ enum Ops {
     Dec,
     Inc,
     Out,
-    Comment,
 }
 
 #[derive(Default, Debug)]
 struct Deadfish {
-    program: String,
-    stack: Vec<i32>,
+    stack: Box<Vec<i32>>,
     tokens: Vec<Ops>,
 }
 
@@ -40,15 +30,36 @@ impl Deadfish {
 
     fn tokenize(&mut self, program: String) {
         let mut tokens: Vec<Ops> = Vec::with_capacity(program.len());
+        let mut in_comment_scope = false; 
         for op in program.chars() {
             match op {
-                's' => tokens.push(Ops::Square),
-                'd' => tokens.push(Ops::Dec),
-                'i' => tokens.push(Ops::Inc),
-                'o' => tokens.push(Ops::Out),
-                // TODO: Comment and Specials Support
-                /* '#' => {}, ' '  => {}, '\n' => {}, etc.. */
+                's' => { 
+                    if in_comment_scope { continue }
+                    tokens.push(Ops::Square)
+                },
+                'd' => { 
+                    if in_comment_scope { continue }
+                    tokens.push(Ops::Dec)
+                },
+                'i' => {
+                    if in_comment_scope { continue }
+                    tokens.push(Ops::Inc)
+                },
+                'o' => {
+                    if in_comment_scope { continue }
+                    tokens.push(Ops::Out)
+                },
+                // Support for single line comments
+                '#' => {
+                    in_comment_scope = true;
+                }
+                ' ' => continue,
+                '\n' => {
+                    in_comment_scope = false;
+                    continue
+                },
                 _ => {
+                    if in_comment_scope { continue }
                     unimplemented!("tokenize: op {:#?} is not supported", op)
                 }
             }
@@ -61,13 +72,16 @@ impl Deadfish {
         let mut token_count = 0usize;
         while token_count < token_size {
             let tok = &self.tokens[token_count];
-            let current = self.peak();
             match tok {
-                Ops::Square => self.stack.push(current * current),
-                Ops::Dec => self.stack.push(current - 1),
-                Ops::Inc => self.stack.push(current + 1),
-                Ops::Out  => println!("{:#?}", current),
-                _  => unimplemented!("interpretation: token {:#?} is not supported", tok)
+                Ops::Square => self.stack.push(i32::pow(self.peak(), 2)),
+                Ops::Dec => self.stack.push(self.peak() -1),
+                Ops::Inc => self.stack.push(self.peak() + 1),
+                Ops::Out  => println!("{:#?}", self.peak()),
+            }
+
+            // checking for the deadfish intrinsics
+            if self.peak() < 0 || self.peak() == 256 {
+                self.stack.push(0);
             }
             token_count += 1;
         }
@@ -75,10 +89,23 @@ impl Deadfish {
     }
 }
 
+
+struct DeadfishArgs {
+    sourcefile: std::path::PathBuf,
+}
+
 fn main() {
-    let program = "iiodoio";
+    let sourcefile = std::env::args().nth(1).expect("Usage: deadfish <file>");
+
+    let args = DeadfishArgs {
+        sourcefile: PathBuf::from(&sourcefile),
+    };
+
+    let program = fs::read_to_string(args.sourcefile)
+                        .expect("could not read sourcefile provided");
+
     let mut fish = Deadfish::new();
-    fish.tokenize(program.to_string());
+    fish.tokenize(program);
     fish.run();
 }
-    
+
