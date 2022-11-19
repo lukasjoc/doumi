@@ -13,3 +13,4 @@ out
 !Makefile
 !build
 target/
+*.rustfmt
