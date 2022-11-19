@@ -1,18 +1,21 @@
 # TODO:
+---
 
 - case-insensitivity
-- REPL
-- LLVM target
+
 - variable support
-- mode support
+
+- proper AST generator + emit
+
+- mode/macro support
     - (@mode; mode-type)
 
 - function support
     - (@f function-name; code)
 
 - more builtins
-    - reset op
-    - abs
     - mod
+    - mod3 ?
+    - other math functions ?
 
-- pre-execution macros
+- LLVM target
