@@ -1,6 +1,8 @@
 # TODO:
 ---
 
+- REPL: history support
+- REPL: load action to load source files directly
 - scope blocks
 - proper AST generator + emit
 - function support (@f function-name; code)

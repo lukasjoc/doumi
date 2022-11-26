@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::PathBuf;
 
-use clap::Parser;
+use clap::{Parser, Subcommand, ValueEnum};
 use rustyline::error::ReadlineError;
 use rustyline::validate::MatchingBracketValidator;
 use rustyline::{Cmd, Editor, EventHandler, KeyCode, KeyEvent, Modifiers};
@@ -158,7 +158,7 @@ fn repl() -> rustyline::Result<()> {
         let readline = rl.readline(">>> ");
         match readline {
             Ok(line) => {
-                match line.as_str() {
+                match line.as_str().trim_end() {
                     "help" => {
                         println!("type i to increase");
                         println!("type d to decrease");
@@ -195,24 +195,54 @@ fn repl() -> rustyline::Result<()> {
     Ok(())
 }
 
-#[derive(Parser, Debug)]
-struct DoumiArgs {
-    #[arg(short, long, value_name = "SOURCE_FILE")]
-    file: Option<PathBuf>,
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+enum EmitOpts {
+    Tokens,
+}
+
+#[derive(Subcommand)]
+enum Cmds {
+    #[command(about = "Execute a source file", long_about = None)]
+    Exec {
+        #[arg(short, long, value_name = "SOURCE_FILE", required = true)]
+        file: Option<PathBuf>,
+
+        #[arg(long, value_name = "EMIT_ONLY", value_enum)]
+        emit: Option<EmitOpts>,
+    },
+}
+
+#[derive(Parser)]
+#[command(author, version)]
+#[command(about = "Doumi's Interpreter and REPL Mode", long_about = None )]
+struct Args {
+    #[command(subcommand)]
+    exec: Option<Cmds>,
 }
 
 fn main() {
-    let args = DoumiArgs::parse();
-    if let Some(file) = args.file.as_deref() {
-        let mut fish = Deadfish::new();
-        let program = fs::read_to_string(file).expect("could not read sourcefile provided");
-        fish.tokenize(program);
-        fish.run();
-        print!("\n");
-    } else {
-        match repl() {
+    let args = Args::parse();
+    match args.exec {
+        Some(Cmds::Exec { file, emit }) => {
+            if let Some(file) = file.as_deref() {
+                let mut fish = Deadfish::new();
+                let program = fs::read_to_string(file).expect("could not read sourcefile provided");
+                fish.tokenize(program);
+                match emit {
+                    Some(EmitOpts::Tokens) => {
+                        println!("{:?}", fish.tokens);
+                        ()
+                    }
+                    None => {
+                        fish.run();
+                        print!("\n");
+                    }
+                }
+            }
+        }
+        None => match repl() {
             Ok(_) => {}
             Err(_) => {}
-        }
+        },
     }
 }
