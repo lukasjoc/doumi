@@ -1,10 +1,11 @@
+use std::fs;
+use std::path::PathBuf;
+
 use clap::Parser;
 use rustyline::error::ReadlineError;
 use rustyline::validate::MatchingBracketValidator;
 use rustyline::{Cmd, Editor, EventHandler, KeyCode, KeyEvent, Modifiers};
 use rustyline_derive::{Completer, Helper, Highlighter, Hinter, Validator};
-use std::fs;
-use std::path::PathBuf;
 
 #[derive(Debug)]
 enum Ops {
@@ -12,6 +13,7 @@ enum Ops {
     Inc,
     Reset,
     Square,
+    Print,
     Out,
 }
 
@@ -73,6 +75,12 @@ impl Deadfish {
                     }
                     tokens.push(Ops::Reset)
                 }
+                'p' => {
+                    if in_comment_scope {
+                        continue;
+                    }
+                    tokens.push(Ops::Print)
+                }
                 // Support for single line comments
                 // # SOME_COMMENT \n
                 '#' => {
@@ -98,6 +106,7 @@ impl Deadfish {
     fn run(&mut self) {
         let token_size = self.tokens.len();
         let mut token_count = 0usize;
+
         while token_count < token_size {
             let tok = &self.tokens[token_count];
             match tok {
@@ -105,7 +114,14 @@ impl Deadfish {
                 Ops::Dec => self.stack.push(self.peak() - 1),
                 Ops::Inc => self.stack.push(self.peak() + 1),
                 Ops::Square => self.stack.push(self.peak() * self.peak()),
-                Ops::Out => println!("{:#?}", self.peak()),
+                Ops::Out => println!("{}", self.peak()),
+                Ops::Print => {
+                    if self.peak() > u8::MAX.into() || self.peak() < u8::MIN.into() {
+                        println!("{}", self.peak());
+                    } else {
+                        print!("{}", char::from(self.peak() as u8));
+                    }
+                }
             }
 
             // checking for the deadfish intrinsics
@@ -161,11 +177,12 @@ fn repl() -> rustyline::Result<()> {
                         // TODO: wrap these in Results to handle errors better
                         fish.tokenize(line.to_string());
                         fish.run();
+                        print!("\n");
                     }
                 }
             }
             Err(ReadlineError::Interrupted) => {
-                println!("Caught Interrupt. Type CTRL-D to quit the REPL");
+                println!("Caught Interrupt. Type CTRL-D to quit the REPL (to reset type ro)");
             }
             Err(ReadlineError::Eof) => break,
             Err(err) => {
@@ -190,6 +207,7 @@ fn main() {
         let program = fs::read_to_string(file).expect("could not read sourcefile provided");
         fish.tokenize(program);
         fish.run();
+        print!("\n");
     } else {
         match repl() {
             Ok(_) => {}

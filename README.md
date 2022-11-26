@@ -1,8 +1,8 @@
 # doumi (dumi)
 
-> A very simple text-format based on a [deadfish](https://esolangs.org/wiki/Deadfish) interpreter
+> A very simple superset text-format based on a [deadfish](https://esolangs.org/wiki/Deadfish) interpreter
 
-Ops Supported (Standard Deadfish only):
+Ops Supported:
 ---
 
 | Op | Description |
@@ -10,8 +10,10 @@ Ops Supported (Standard Deadfish only):
 | i  | Incement the stack    |
 | d  | Decrement the stack   |
 | o  | Output top value of stack      |
+| p  | Output top value of stack and interpret as ASCII Chr      |
 | s  | Square top value of stack      |
 | r  | Reset stack       |
+
 
 Other Features:
 ---
@@ -19,8 +21,31 @@ Other Features:
 - single-line comments
 
 Example:
-```deadfish
+```bash
 # A comment
 ii
 o # should print 2
 ```
+
+
+Hello, World! in Doumi:
+---
+
+```bash
+iiiiiiiiisddddddddd           p   # H
+iiiiiiiiiiiiiiiiiiiiiiiiiiiii p   # e
+iiiiiii                       pp  # ll
+iii                           p   # o
+r iiiiiisiiiiiiii             p   # ,
+r iiiiiisdddd                 p   # SPC
+r iiiiiiiiisiiiiii            p   # W
+r iiiiiiiiiiisdddddddddd      p   # o
+iii                           p   # r
+dddddd                        p   # l
+dddddddd                      p   # d
+r iiiiiisddd                  p   # !
+```
+
+
+More examples [here](./testprograms)
+
