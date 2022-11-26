@@ -164,7 +164,8 @@ fn repl() -> rustyline::Result<()> {
                         println!("type d to decrease");
                         println!("type s to square");
                         println!("type r to reset");
-                        println!("type o to print");
+                        println!("type o to ouput raw value");
+                        println!("type p to output value utf8 decoded (fallback to raw, when output is not in the range {:?}-{:?} is automatic)", u8::MIN, u8::MAX);
                         println!("type # to comment something");
                         println!("type help to print this help");
                         println!("type tokens to print currently-parsed tokens");
