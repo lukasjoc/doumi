@@ -1,0 +1,6 @@
+# Known Blocks
+
+(6; iis p) # puts this in a separate functions lookup table
+
+@6. # references to the block 6 and looks it up in the block lookup table
+

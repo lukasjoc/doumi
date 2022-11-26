@@ -1,10 +1,8 @@
 # TODO:
 ---
 
-- scope blocks
+- convert to multi pass (to support multiple emit options, maybe even llvm IR ?)
 - proper AST generator + emit
-- function support (@f function-name; code)
 - better error/result handling
-- convert to multi pass (to support multiple emit options)
 - export to trait/lib
 - unit tests
