@@ -1,3 +1,6 @@
+#![allow(dead_code)]
+#![allow(unused_assignments)]
+
 use std::fs;
 use std::path::PathBuf;
 
@@ -8,19 +11,34 @@ use rustyline::{Cmd, Editor, EventHandler, KeyCode, KeyEvent, Modifiers};
 use rustyline_derive::{Completer, Helper, Highlighter, Hinter, Validator};
 
 #[derive(Debug)]
-enum Ops {
+enum ApplicationAst {
+    Inc,
+    Dec,
+    Reset,
+}
+
+// TODO: save some meta info in the ast
+// #[derive(Debug)]
+// struct ParseInfo {pos: i64}
+// Dec(ParseInfo) ...
+
+#[derive(Debug)]
+enum Ast {
     Dec,
     Inc,
     Reset,
     Square,
     Print,
     Out,
+    BlockDef { identifer: String, body: Box<Vec<Ast>> },
+    BlockCall { identifer: String, application: Box<ApplicationAst> },
 }
 
 #[derive(Default, Debug)]
 struct Deadfish {
     stack: Box<Vec<i64>>,
-    tokens: Vec<Ops>,
+    // TODO: table ...
+    ast: Box<Vec<Ast>>,
 }
 
 impl Deadfish {
@@ -36,99 +54,82 @@ impl Deadfish {
         0
     }
 
-    fn error_with_program(program: String) {
-        println!("Error: {:?} is not supported", program);
+    fn error_with_program(program: &str, other: char, pos: usize) {
+        eprintln!(
+            "Error: {:?} is not supported at ({:?}, pos: {:?} )",
+            program, other, pos
+        );
     }
 
-    fn tokenize(&mut self, program: String) {
-        let mut tokens: Vec<Ops> = Vec::with_capacity(program.len());
-        let mut in_comment_scope = false;
-        for op in program.chars() {
-            match op.to_ascii_lowercase() {
-                's' => {
-                    if in_comment_scope {
-                        continue;
-                    }
-                    tokens.push(Ops::Square)
-                }
-                'd' => {
-                    if in_comment_scope {
-                        continue;
-                    }
-                    tokens.push(Ops::Dec)
-                }
-                'i' => {
-                    if in_comment_scope {
-                        continue;
-                    }
-                    tokens.push(Ops::Inc)
-                }
-                'o' => {
-                    if in_comment_scope {
-                        continue;
-                    }
-                    tokens.push(Ops::Out)
-                }
-                'r' => {
-                    if in_comment_scope {
-                        continue;
-                    }
-                    tokens.push(Ops::Reset)
-                }
-                'p' => {
-                    if in_comment_scope {
-                        continue;
-                    }
-                    tokens.push(Ops::Print)
-                }
-                // Support for single line comments
-                // # SOME_COMMENT \n
-                '#' => {
-                    in_comment_scope = true;
-                }
+    fn try_parse_comment(program: &str, at: usize) -> usize {
+        let mut next = 0usize;
+        let mut parsed = false;
+        let program_at = program.get(at..program.len()).unwrap();
+        while (next < program_at.len()) && !parsed {
+            let tok = program_at.chars().nth(next).unwrap();
+            match tok {
                 '\n' => {
-                    in_comment_scope = false;
-                    continue;
+                    parsed = true;
+                    break
+                },
+                _ => {},
+            }
+            next += 1;
+        }
+        next
+    }
+
+    fn build_ast(&mut self, program: String) {
+        let mut ast: Vec<Ast> = Vec::with_capacity(program.len());
+        let mut next = 0usize;
+        while next < program.len() {
+            let tok = program.to_ascii_lowercase().chars().nth(next).unwrap();
+            match tok {
+                'i' => ast.push(Ast::Inc),
+                'd' => ast.push(Ast::Dec),
+                's' => ast.push(Ast::Square),
+                'o' => ast.push(Ast::Out),
+                'p' => ast.push(Ast::Print),
+                'r' => ast.push(Ast::Reset),
+                ' ' | '\n' | '\t' | '\r' => {},
+                '#' => {
+                    next += Self::try_parse_comment(&program.to_ascii_lowercase(), next)
                 }
-                ' ' => continue,
-                _ => {
-                    if in_comment_scope {
-                        continue;
-                    }
-                    Self::error_with_program(program);
-                    break;
+                other => {
+                    Self::error_with_program(&program.to_ascii_lowercase(), other, next);
+                    break
                 }
             }
+            next += 1
         }
-        self.tokens = tokens;
+        self.ast = Box::new(ast);
     }
 
     fn run(&mut self) {
-        let token_size = self.tokens.len();
-        let mut token_count = 0usize;
-
-        while token_count < token_size {
-            let tok = &self.tokens[token_count];
+        let mut next = 0usize;
+        while next < self.ast.len() {
+            let tok = &self.ast[next];
             match tok {
-                Ops::Reset => self.stack.push(0),
-                Ops::Dec => self.stack.push(self.peak() - 1),
-                Ops::Inc => self.stack.push(self.peak() + 1),
-                Ops::Square => self.stack.push(self.peak() * self.peak()),
-                Ops::Out => println!("{}", self.peak()),
-                Ops::Print => {
+                Ast::Reset => self.stack.push(0),
+                Ast::Dec => self.stack.push(self.peak() - 1),
+                Ast::Inc => self.stack.push(self.peak() + 1),
+                Ast::Square => self.stack.push(self.peak() * self.peak()),
+                Ast::Out => println!("{}", self.peak()),
+                Ast::Print => {
                     if self.peak() > u8::MAX.into() || self.peak() < u8::MIN.into() {
                         println!("{}", self.peak());
                     } else {
                         print!("{}", char::from(self.peak() as u8));
                     }
                 }
+                _ => unimplemented!("this token is not yet implemented"),
             }
 
             // checking for the deadfish intrinsics
             if self.peak() < 0 || self.peak() == 256 {
                 self.stack.push(0);
             }
-            token_count += 1;
+            next += 1;
         }
     }
 }
@@ -165,18 +166,18 @@ fn repl() -> rustyline::Result<()> {
                         println!("type s to square");
                         println!("type r to reset");
                         println!("type o to ouput raw value");
-                        println!("type p to output value utf8 decoded (fallback to raw, when output is not in the range {:?}-{:?} is automatic)", u8::MIN, u8::MAX);
+                        println!("type p to output value utf-8 decoded (fallback to raw, when output is not in the range {:?}-{:?} is automatic)", u8::MIN, u8::MAX);
                         println!("type # to comment something");
                         println!("type help to print this help");
-                        println!("type tokens to print currently-parsed tokens");
+                        println!("type ast to print currently-parsed AST");
                         println!("type CTRL-s to go into multi line mode");
                     }
-                    "tokens" => {
-                        println!("{:#?}", fish.tokens);
+                    "ast" => {
+                        println!("{:#?}", fish.ast);
                     }
                     _ => {
                         // TODO: wrap these in Results to handle errors better
-                        fish.tokenize(line.to_string());
+                        fish.build_ast(line.to_string());
                         fish.run();
                         print!("\n");
                     }
@@ -197,7 +198,7 @@ fn repl() -> rustyline::Result<()> {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 enum EmitOpts {
-    Tokens,
+    Ast,
 }
 
 #[derive(Subcommand)]
@@ -227,10 +228,10 @@ fn main() {
             if let Some(file) = file.as_deref() {
                 let mut fish = Deadfish::new();
                 let program = fs::read_to_string(file).expect("could not read sourcefile provided");
-                fish.tokenize(program);
+                fish.build_ast(program);
                 match emit {
-                    Some(EmitOpts::Tokens) => {
-                        println!("{:?}", fish.tokens);
+                    Some(EmitOpts::Ast) => {
+                        println!("{:?}", fish.ast);
                         ()
                     }
                     None => {

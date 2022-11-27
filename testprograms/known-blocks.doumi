@@ -23,10 +23,6 @@ r(@i; o)p
 r(@i; o)p
 r(@i; o)p
 
-
-
-
-
 (y ; iii o)
 (x ; iis o)
 
@@ -60,6 +56,6 @@ AST = [
     Add,
     BlockCall({name: String, apply: Mod, Div, Mult, Inc, Dec, Square})
     Out
-    Channel(head=BlockDef, tail=BlockDef),
+    # Channel(head=BlockDef, tail=BlockDef),
 ]
 
