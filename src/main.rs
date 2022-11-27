@@ -30,8 +30,8 @@ enum Ast {
     Square,
     Print,
     Out,
-    BlockDef { identifer: String, body: Box<Vec<Ast>> },
-    BlockCall { identifer: String, application: Box<ApplicationAst> },
+    BlockDef { identifier: String, body: Box<Vec<Ast>> },
+    BlockCall { identifier: String, application: Box<ApplicationAst> },
 }
 
 #[derive(Default, Debug)]
@@ -62,11 +62,11 @@ impl Deadfish {
     }
 
     fn try_parse_comment(program: &str, at: usize) -> usize {
-        let mut next = 0usize;
+        let mut advance = 0usize;
         let mut parsed = false;
         let program_at = program.get(at..program.len()).unwrap();
-        while (next < program_at.len()) && !parsed {
-            let tok = program_at.chars().nth(next);
+        while (advance < program_at.len()) && !parsed {
+            let tok = program_at.chars().nth(advance);
             match tok {
                 Some('\n') => {
                     parsed = true;
@@ -74,14 +74,80 @@ impl Deadfish {
                 },
                 None | Some(_) => {},
             }
-            next += 1;
+            advance += 1;
         }
-        next
+        advance
     }
 
-    fn build_ast(&mut self, program: String) {
+    fn try_parse_blockdef(program: &str, at: usize) -> (usize, crate::Ast) {
+        let mut advance = 0usize;
+        let mut parsed = false;
+        let program_at = program.get(at..program.len()).unwrap();
+
+        let mut identifier = String::new();
+
+        let try_parse_identifier = |program: &str, at: usize| -> (usize, String) {
+            let mut advance = 1usize;
+            let mut parsed = false;
+            let mut identifier = String::new();
+            let program_at = program.get(at..program.len()).unwrap();
+            while (advance < program_at.len()) && !parsed {
+                let tok = program_at.chars().nth(advance);
+                match tok {
+                    Some(';') => {
+                        parsed = true;
+                        advance -= 1;
+                        break
+                    },
+                    Some(' ') => {},
+                    Some(other) => {
+                        identifier += &other.to_string();
+                    }
+                    None => {}
+                }
+                advance += 1;
+            }
+            (advance, identifier)
+        };
+
+        let mut body: Vec<crate::Ast> = Vec::new();
+        while (advance < program_at.len()) && !parsed {
+            let tok = program_at.chars().nth(advance);
+            match tok {
+                Some('(') => {
+                    println!("block def parsing (");
+                    // try_parse_identif
+                    let (advance_ident, ident) = try_parse_identifier(&program, advance);
+                    identifier = ident;
+                    advance += advance_ident;
+                },
+                Some(';') => {
+                    let ast = Self::try_parse_body(&program.to_ascii_lowercase(), advance+1);
+                    body = ast;
+                }
+                Some(')') => {
+                    // somehow it gets advanced to early and then
+                    // parse_main doesnt match to the end brace correctly
+                    println!("block def parsing )",);
+                    parsed = true;
+                    advance += 1;
+                    break
+                },
+                Some(other) => {
+                    println!("block def parsing {:?}", other);
+                },
+                None => {},
+            }
+            advance += 1;
+        }
+        (advance,
+        Ast::BlockDef{identifier, body: Box::new(body)})
+    }
+
+    // TODO: better error handling (Reuslt, T)
+    fn try_parse_body(program: &str, at: usize) -> Vec<crate::Ast> {
         let mut ast: Vec<Ast> = Vec::with_capacity(program.len());
-        let mut next = 0usize;
+        let mut next = at;
         while next < program.len() {
             let tok = program.to_ascii_lowercase().chars().nth(next);
             match tok {
@@ -94,6 +160,14 @@ impl Deadfish {
                 Some('#') => {
                     next += Self::try_parse_comment(&program.to_ascii_lowercase(), next)
                 }
+                Some('(') => {
+                    let (blockdef_advance, blockdef) = Self::try_parse_blockdef(
+                            &program.to_ascii_lowercase(),
+                            next
+                    );
+                    ast.push(blockdef);
+                    next += blockdef_advance;
+                }
                 None | Some(' ' | '\n' | '\t' | '\r') => {},
                 Some(other) => {
                     Self::error_with_program(&program.to_ascii_lowercase(), other, next);
@@ -102,6 +176,11 @@ impl Deadfish {
             }
             next += 1
         }
+        ast
+    }
+
+    fn build_ast(&mut self, program: String) {
+        let ast = Self::try_parse_body(&program.to_ascii_lowercase(), 0);
         self.ast = Box::new(ast);
     }
 
@@ -126,7 +205,11 @@ impl Deadfish {
                         }
                     }
                 }
-                _ => unimplemented!("this token is not yet implemented"),
+                other => {
+                    // unimplemented!("this token is not yet implemented")
+                    eprintln!("operation not supported yet : {:#?}", other);
+                    break
+                },
             }
 
             // checking for the deadfish intrinsics
