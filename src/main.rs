@@ -66,13 +66,13 @@ impl Deadfish {
         let mut parsed = false;
         let program_at = program.get(at..program.len()).unwrap();
         while (next < program_at.len()) && !parsed {
-            let tok = program_at.chars().nth(next).unwrap();
+            let tok = program_at.chars().nth(next);
             match tok {
-                '\n' => {
+                Some('\n') => {
                     parsed = true;
                     break
                 },
-                _ => {},
+                None | Some(_) => {},
             }
             next += 1;
         }
@@ -83,19 +83,19 @@ impl Deadfish {
         let mut ast: Vec<Ast> = Vec::with_capacity(program.len());
         let mut next = 0usize;
         while next < program.len() {
-            let tok = program.to_ascii_lowercase().chars().nth(next).unwrap();
+            let tok = program.to_ascii_lowercase().chars().nth(next);
             match tok {
-                'i' => ast.push(Ast::Inc),
-                'd' => ast.push(Ast::Dec),
-                's' => ast.push(Ast::Square),
-                'o' => ast.push(Ast::Out),
-                'p' => ast.push(Ast::Print),
-                'r' => ast.push(Ast::Reset),
-                ' ' | '\n' | '\t' | '\r' => {},
-                '#' => {
+                Some('i') => ast.push(Ast::Inc),
+                Some('d') => ast.push(Ast::Dec),
+                Some('s') => ast.push(Ast::Square),
+                Some('o') => ast.push(Ast::Out),
+                Some('p') => ast.push(Ast::Print),
+                Some('r') => ast.push(Ast::Reset),
+                Some('#') => {
                     next += Self::try_parse_comment(&program.to_ascii_lowercase(), next)
                 }
-                other => {
+                None | Some(' ' | '\n' | '\t' | '\r') => {},
+                Some(other) => {
                     Self::error_with_program(&program.to_ascii_lowercase(), other, next);
                     break
                 }
@@ -119,7 +119,11 @@ impl Deadfish {
                     if self.peak() > u8::MAX.into() || self.peak() < u8::MIN.into() {
                         println!("{}", self.peak());
                     } else {
-                        print!("{}", char::from(self.peak() as u8));
+                        if self.peak() < 32 {
+                            print!("{:?} (NON-PRINTING)", self.peak());
+                        }else {
+                            print!("{}", char::from(self.peak() as u8));
+                        }
                     }
                 }
                 _ => unimplemented!("this token is not yet implemented"),
@@ -173,7 +177,7 @@ fn repl() -> rustyline::Result<()> {
                         println!("type CTRL-s to go into multi line mode");
                     }
                     "ast" => {
-                        println!("{:#?}", fish.ast);
+                        println!("{:?}", fish.ast);
                     }
                     _ => {
                         // TODO: wrap these in Results to handle errors better

@@ -46,6 +46,16 @@ dddddddd                      p   # d
 r iiiiiisddd                  p   # !
 ```
 
+Extended ASCII
+---
+```bash
+iiisiisiiiiiii # 128
+
+# print the extended ascii chars
+#   ¡¢£¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿ
+pipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipip
+ipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipip
+ipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipip
+```
 
 More examples [here](./testprograms)
-
