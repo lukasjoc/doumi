@@ -10,6 +10,7 @@ Ops Supported:
 | i  | Incement the stack    |
 | d  | Decrement the stack   |
 | o  | Output top value of stack      |
+| j  | Jump to the start of the program     |
 | p  | Output top value of stack and interpret as ASCII Chr      |
 | s  | Square top value of stack      |
 | r  | Reset stack       |

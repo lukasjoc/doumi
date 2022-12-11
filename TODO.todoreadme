@@ -1,0 +1,4 @@
+(task,later): better error/result handling
+(task,later): convert to multi pass (to support multiple emit options)
+(task,later): export to trait/lib
+(task,later): unit tests

@@ -13,6 +13,7 @@ enum Ops {
     Inc,
     Reset,
     Square,
+    JumpStart,
     Print,
     Out,
 }
@@ -69,6 +70,12 @@ impl Deadfish {
                     }
                     tokens.push(Ops::Out)
                 }
+                'j' => {
+                    if in_comment_scope {
+                        continue;
+                    }
+                    tokens.push(Ops::JumpStart)
+                }
                 'r' => {
                     if in_comment_scope {
                         continue;
@@ -114,7 +121,8 @@ impl Deadfish {
                 Ops::Dec => self.stack.push(self.peak() - 1),
                 Ops::Inc => self.stack.push(self.peak() + 1),
                 Ops::Square => self.stack.push(self.peak() * self.peak()),
-                Ops::Out => println!("{}", self.peak()),
+                Ops::JumpStart => token_count = 0,
+                Ops::Out => print!("{}", self.peak()),
                 Ops::Print => {
                     if self.peak() > u8::MAX.into() || self.peak() < u8::MIN.into() {
                         println!("{}", self.peak());
@@ -165,6 +173,7 @@ fn repl() -> rustyline::Result<()> {
                         println!("type s to square");
                         println!("type r to reset");
                         println!("type o to ouput raw value");
+                        println!("type j to jump to the start again");
                         println!("type p to output value utf8 decoded (fallback to raw, when output is not in the range {:?}-{:?} is automatic)", u8::MIN, u8::MAX);
                         println!("type # to comment something");
                         println!("type help to print this help");
