@@ -28,10 +28,17 @@ enum Ast {
     Inc,
     Reset,
     Square,
+    JumpStart,
     Print,
     Out,
-    BlockDef { identifier: String, body: Box<Vec<Ast>> },
-    BlockCall { identifier: String, application: Box<ApplicationAst> },
+    BlockDef {
+        identifier: String,
+        body: Box<Vec<Ast>>,
+    },
+    BlockCall {
+        identifier: String,
+        application: Box<ApplicationAst>,
+    },
 }
 
 #[derive(Default, Debug)]
@@ -70,9 +77,9 @@ impl Deadfish {
             match tok {
                 Some('\n') => {
                     parsed = true;
-                    break
-                },
-                None | Some(_) => {},
+                    break;
+                }
+                None | Some(_) => {}
             }
             advance += 1;
         }
@@ -97,9 +104,9 @@ impl Deadfish {
                     Some(';') => {
                         parsed = true;
                         advance -= 1;
-                        break
-                    },
-                    Some(' ') => {},
+                        break;
+                    }
+                    Some(' ') => {}
                     Some(other) => {
                         identifier += &other.to_string();
                     }
@@ -120,9 +127,9 @@ impl Deadfish {
                     let (advance_ident, ident) = try_parse_identifier(&program, advance);
                     identifier = ident;
                     advance += advance_ident;
-                },
+                }
                 Some(';') => {
-                    let ast = Self::try_parse_body(&program.to_ascii_lowercase(), advance+1);
+                    let ast = Self::try_parse_body(&program.to_ascii_lowercase(), advance + 1);
                     body = ast;
                 }
                 Some(')') => {
@@ -131,20 +138,25 @@ impl Deadfish {
                     println!("block def parsing )",);
                     parsed = true;
                     advance += 1;
-                    break
-                },
+                    break;
+                }
                 Some(other) => {
                     println!("block def parsing {:?}", other);
-                },
-                None => {},
+                }
+                None => {}
             }
             advance += 1;
         }
-        (advance,
-        Ast::BlockDef{identifier, body: Box::new(body)})
+        (
+            advance,
+            Ast::BlockDef {
+                identifier,
+                body: Box::new(body),
+            },
+        )
     }
 
-    // TODO: better error handling (Reuslt, T)
+    // TODO: error handling
     fn try_parse_body(program: &str, at: usize) -> Vec<crate::Ast> {
         let mut ast: Vec<Ast> = Vec::with_capacity(program.len());
         let mut next = at;
@@ -157,21 +169,18 @@ impl Deadfish {
                 Some('o') => ast.push(Ast::Out),
                 Some('p') => ast.push(Ast::Print),
                 Some('r') => ast.push(Ast::Reset),
-                Some('#') => {
-                    next += Self::try_parse_comment(&program.to_ascii_lowercase(), next)
-                }
+                Some('j') => ast.push(Ast::JumpStart),
+                Some('#') => next += Self::try_parse_comment(&program.to_ascii_lowercase(), next),
                 Some('(') => {
-                    let (blockdef_advance, blockdef) = Self::try_parse_blockdef(
-                            &program.to_ascii_lowercase(),
-                            next
-                    );
+                    let (blockdef_advance, blockdef) =
+                    Self::try_parse_blockdef(&program.to_ascii_lowercase(), next);
                     ast.push(blockdef);
                     next += blockdef_advance;
                 }
-                None | Some(' ' | '\n' | '\t' | '\r') => {},
+                None | Some(' ' | '\n' | '\t' | '\r') => {}
                 Some(other) => {
                     Self::error_with_program(&program.to_ascii_lowercase(), other, next);
-                    break
+                    break;
                 }
             }
             next += 1
@@ -184,6 +193,18 @@ impl Deadfish {
         self.ast = Box::new(ast);
     }
 
+    fn output_peaked(&self) {
+        print!("{}", self.peak())
+    }
+
+    fn output_peaked_ascii(&self) {
+        if self.peak() > u8::MAX.into() || self.peak() < u8::MIN.into() {
+            self.output_peaked();
+            return;
+        }
+        print!("{}", char::from(self.peak() as u8));
+    }
+
     fn run(&mut self) {
         let mut next = 0usize;
         while next < self.ast.len() {
@@ -193,23 +214,14 @@ impl Deadfish {
                 Ast::Dec => self.stack.push(self.peak() - 1),
                 Ast::Inc => self.stack.push(self.peak() + 1),
                 Ast::Square => self.stack.push(self.peak() * self.peak()),
-                Ast::Out => println!("{}", self.peak()),
-                Ast::Print => {
-                    if self.peak() > u8::MAX.into() || self.peak() < u8::MIN.into() {
-                        println!("{}", self.peak());
-                    } else {
-                        if self.peak() < 32 {
-                            print!("{:?} (NON-PRINTING)", self.peak());
-                        }else {
-                            print!("{}", char::from(self.peak() as u8));
-                        }
-                    }
-                }
+                Ast::JumpStart => next = 0,
+                Ast::Out => self.output_peaked(),
+                Ast::Print => self.output_peaked_ascii(),
                 other => {
                     // unimplemented!("this token is not yet implemented")
                     eprintln!("operation not supported yet : {:#?}", other);
-                    break
-                },
+                    break;
+                }
             }
 
             // checking for the deadfish intrinsics
@@ -252,6 +264,7 @@ fn repl() -> rustyline::Result<()> {
                         println!("type d to decrease");
                         println!("type s to square");
                         println!("type r to reset");
+                        println!("type j jump to the start again");
                         println!("type o to ouput raw value");
                         println!("type p to output value utf-8 decoded (fallback to raw, when output is not in the range {:?}-{:?} is automatic)", u8::MIN, u8::MAX);
                         println!("type # to comment something");

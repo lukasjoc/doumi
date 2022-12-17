@@ -1,0 +1,44 @@
+
+# COOL PATTERN
+r
+
+# riiiiiiiiiipr # newline char
+# riiiiiisddddpr # space char
+
+
+
+#   0     0
+#  000   000
+# 00000 00000
+# 00000 00000
+#  000   000
+#   0     0
+
+# riiiiiisddddpr riiiiiisddddpr o riiiiiisddddpr riiiiiisddddpr riiiiiisddddpr riiiiiisddddpr riiiiiisddddpr o riiiiiiiiiipr
+# riiiiiisddddpr ooo rriiiiiisddddpr iiiiiisddddpr iiiiiisddddpr ooo riiiiiiiiiipr
+# ooooo riiiiiisddddpr ooooo riiiiiiiiiipr
+# 
+# ooooo riiiiiisddddpr ooooo riiiiiiiiiipr
+# riiiiiisddddpr ooo rriiiiiisddddpr iiiiiisddddpr iiiiiisddddpr ooo riiiiiiiiiipr
+# riiiiiisddddpr riiiiiisddddpr o riiiiiisddddpr riiiiiisddddpr riiiiiisddddpr riiiiiisddddpr riiiiiisddddpr o riiiiiiiiiipr
+# #############################################################################################
+
+
+
+#   0  00000
+#  000  000
+# 00000  0
+
+riiiiiisddddpr riiiiiisddddpr o riiiiiisddddpr riiiiiisddddpr ooooo
+riiiiiiiiiipr #nl
+
+
+riiiiiisddddpr ooo rriiiiiisddddpr   riiiiiisddddpr ooo
+riiiiiiiiiipr #nl
+
+ooooo riiiiiisddddpr riiiiiisddddpr   o
+riiiiiiiiiipr #nl
+
+# run the loop
+j
+
