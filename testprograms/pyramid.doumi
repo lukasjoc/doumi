@@ -2,10 +2,8 @@
 # COOL PATTERN
 r
 
-# riiiiiiiiiipr # newline char
-# riiiiiisddddpr # space char
-
-
+(nl; riiiiiiiiiipr) # newline char
+(spc; riiiiiisddddpr) # space char
 
 #   0     0
 #  000   000
@@ -14,13 +12,13 @@ r
 #  000   000
 #   0     0
 
-# riiiiiisddddpr riiiiiisddddpr o riiiiiisddddpr riiiiiisddddpr riiiiiisddddpr riiiiiisddddpr riiiiiisddddpr o riiiiiiiiiipr
-# riiiiiisddddpr ooo rriiiiiisddddpr iiiiiisddddpr iiiiiisddddpr ooo riiiiiiiiiipr
-# ooooo riiiiiisddddpr ooooo riiiiiiiiiipr
+# @spc. @spc. o @spc. @spc. @spc. @spc. @spc. o @nl.
+# @spc. ooo r@spc. iiiiiisddddpr iiiiiisddddpr ooo @nl.
+# ooooo @spc. ooooo @nl.
 # 
-# ooooo riiiiiisddddpr ooooo riiiiiiiiiipr
-# riiiiiisddddpr ooo rriiiiiisddddpr iiiiiisddddpr iiiiiisddddpr ooo riiiiiiiiiipr
-# riiiiiisddddpr riiiiiisddddpr o riiiiiisddddpr riiiiiisddddpr riiiiiisddddpr riiiiiisddddpr riiiiiisddddpr o riiiiiiiiiipr
+# ooooo @spc. ooooo @nl.
+# @spc. ooo r@spc. iiiiiisddddpr iiiiiisddddpr ooo @nl.
+# @spc. @spc. o @spc. @spc. @spc. @spc. @spc. o @nl.
 # #############################################################################################
 
 
@@ -29,15 +27,11 @@ r
 #  000  000
 # 00000  0
 
-riiiiiisddddpr riiiiiisddddpr o riiiiiisddddpr riiiiiisddddpr ooooo
-riiiiiiiiiipr #nl
+@spc. @spc. o @spc. @spc. ooooo @nl.
 
+@spc. ooo @spc. @spc. ooo @nl.
 
-riiiiiisddddpr ooo rriiiiiisddddpr   riiiiiisddddpr ooo
-riiiiiiiiiipr #nl
-
-ooooo riiiiiisddddpr riiiiiisddddpr   o
-riiiiiiiiiipr #nl
+ooooo @spc. @spc. o @nl.
 
 # run the loop
 j

@@ -3,6 +3,7 @@
 
 use std::fs;
 use std::path::PathBuf;
+use std::collections::HashMap;
 
 use clap::{Parser, Subcommand, ValueEnum};
 use rustyline::error::ReadlineError;
@@ -10,19 +11,12 @@ use rustyline::validate::MatchingBracketValidator;
 use rustyline::{Cmd, Editor, EventHandler, KeyCode, KeyEvent, Modifiers};
 use rustyline_derive::{Completer, Helper, Highlighter, Hinter, Validator};
 
-#[derive(Debug)]
-enum ApplicationAst {
-    Inc,
-    Dec,
-    Reset,
-}
-
 // TODO: save some meta info in the ast
 // #[derive(Debug)]
 // struct ParseInfo {pos: i64}
 // Dec(ParseInfo) ...
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Ast {
     Dec,
     Inc,
@@ -37,14 +31,13 @@ enum Ast {
     },
     BlockCall {
         identifier: String,
-        application: Box<ApplicationAst>,
     },
 }
 
 #[derive(Default, Debug)]
 struct Deadfish {
     stack: Box<Vec<i64>>,
-    // TODO: table ...
+    table: Box<HashMap<String, Box<Vec<Ast>> >>,
     ast: Box<Vec<Ast>>,
 }
 
@@ -68,15 +61,58 @@ impl Deadfish {
         );
     }
 
-    fn try_parse_comment(program: &str, at: usize) -> usize {
-        let mut advance = 0usize;
-        let mut parsed = false;
-        let program_at = program.get(at..program.len()).unwrap();
-        while (advance < program_at.len()) && !parsed {
+    fn try_parse_comment(program_at: &str) -> usize {
+        let mut advance = 0;
+        while advance < program_at.len() {
             let tok = program_at.chars().nth(advance);
             match tok {
-                Some('\n') => {
-                    parsed = true;
+                Some('\n') => return advance,
+                None | Some(_) => {}
+            }
+            advance += 1;
+        }
+        advance
+    }
+
+    fn try_parse_blockdef(program_at: &str, ast: &mut Vec<crate::Ast>) -> usize {
+        let mut advance = 0;
+        let mut body: Vec<crate::Ast> = Vec::new();
+        let mut identifier = String::new();
+
+        let try_parse_identifier = |program_at: &str| -> String {
+            let mut advance = 0;
+            let mut ident: String = String::new();
+            while advance < program_at.len() {
+                let tok = program_at.chars().nth(advance);
+                match tok {
+                    Some(';') => return ident,
+                    None | Some(' ') => {}
+                    Some(other) => ident += &other.to_string()
+                }
+                advance += 1;
+            }
+            ident
+        };
+
+        while advance < program_at.len() {
+            let current_program_at = &mut program_at.get(advance..program_at.len()).unwrap();
+            let tok = program_at.chars().nth(advance);
+            match tok {
+                Some('(') => {
+                    advance += 1;
+                    let current_program_at = &mut program_at.get(advance..program_at.len()).unwrap();
+                    identifier = try_parse_identifier(current_program_at);
+                    continue;
+                }
+                Some(';') => {
+                    advance += 1;
+                    body = Self::try_parse(&current_program_at);
+                    continue;
+                }
+                Some(')') => {
+                    advance += 1;
+                    let blockdef = Ast::BlockDef { identifier, body: Box::new(body) };
+                    ast.push(blockdef);
                     break;
                 }
                 None | Some(_) => {}
@@ -86,82 +122,53 @@ impl Deadfish {
         advance
     }
 
-    fn try_parse_blockdef(program: &str, at: usize) -> (usize, crate::Ast) {
-        let mut advance = 0usize;
-        let mut parsed = false;
-        let program_at = program.get(at..program.len()).unwrap();
-
+    fn try_parse_blockcall(program_at: &str, ast: &mut Vec<crate::Ast>) -> usize {
+        let mut advance = 0;
         let mut identifier = String::new();
 
-        let try_parse_identifier = |program: &str, at: usize| -> (usize, String) {
-            let mut advance = 1usize;
-            let mut parsed = false;
-            let mut identifier = String::new();
-            let program_at = program.get(at..program.len()).unwrap();
-            while (advance < program_at.len()) && !parsed {
+        let try_parse_identifier = |program_at: &str| -> String {
+            let mut advance = 0;
+            let mut ident: String = String::new();
+            while advance < program_at.len() {
                 let tok = program_at.chars().nth(advance);
                 match tok {
-                    Some(';') => {
-                        parsed = true;
-                        advance -= 1;
-                        break;
-                    }
-                    Some(' ') => {}
-                    Some(other) => {
-                        identifier += &other.to_string();
-                    }
-                    None => {}
+                    Some('.') => return ident,
+                    None | Some('@' | ' ') => {}
+                    Some(other) => ident += &other.to_string()
                 }
                 advance += 1;
             }
-            (advance, identifier)
+            ident
         };
-
-        let mut body: Vec<crate::Ast> = Vec::new();
-        while (advance < program_at.len()) && !parsed {
+        while advance < program_at.len() {
             let tok = program_at.chars().nth(advance);
             match tok {
-                Some('(') => {
-                    println!("block def parsing (");
-                    // try_parse_identif
-                    let (advance_ident, ident) = try_parse_identifier(&program, advance);
-                    identifier = ident;
-                    advance += advance_ident;
-                }
-                Some(';') => {
-                    let ast = Self::try_parse_body(&program.to_ascii_lowercase(), advance + 1);
-                    body = ast;
-                }
-                Some(')') => {
-                    // somehow it gets advanced to early and then
-                    // parse_main doesnt match to the end brace correctly
-                    println!("block def parsing )",);
-                    parsed = true;
+                Some('@') => {
                     advance += 1;
+                    let current_program_at = &mut program_at.get(advance..program_at.len()).unwrap();
+                    identifier = try_parse_identifier(current_program_at);
+                    continue;
+                }
+                Some('.') => {
+                    advance += 1;
+                    let blockcall = Ast::BlockCall { identifier };
+                    ast.push(blockcall);
                     break;
                 }
-                Some(other) => {
-                    println!("block def parsing {:?}", other);
-                }
-                None => {}
+                None | Some(_) => {}
             }
             advance += 1;
         }
-        (
-            advance,
-            Ast::BlockDef {
-                identifier,
-                body: Box::new(body),
-            },
-        )
+        advance
     }
 
-    // TODO: error handling
-    fn try_parse_body(program: &str, at: usize) -> Vec<crate::Ast> {
+    // TODO: better error handling
+    fn try_parse(program: &str) -> Vec<crate::Ast> {
         let mut ast: Vec<Ast> = Vec::with_capacity(program.len());
-        let mut next = at;
-        while next < program.len() {
-            let tok = program.to_ascii_lowercase().chars().nth(next);
+        let mut advanced = 0;
+        while advanced < program.len() {
+            let program_at = program.get(advanced..program.len()).unwrap();
+            let tok = program.to_ascii_lowercase().chars().nth(advanced);
             match tok {
                 Some('i') => ast.push(Ast::Inc),
                 Some('d') => ast.push(Ast::Dec),
@@ -170,26 +177,27 @@ impl Deadfish {
                 Some('p') => ast.push(Ast::Print),
                 Some('r') => ast.push(Ast::Reset),
                 Some('j') => ast.push(Ast::JumpStart),
-                Some('#') => next += Self::try_parse_comment(&program.to_ascii_lowercase(), next),
+                Some('#') => {
+                    advanced += Self::try_parse_comment(&program_at);
+                    continue;
+                },
                 Some('(') => {
-                    let (blockdef_advance, blockdef) =
-                    Self::try_parse_blockdef(&program.to_ascii_lowercase(), next);
-                    ast.push(blockdef);
-                    next += blockdef_advance;
+                    advanced += Self::try_parse_blockdef(&program_at, &mut ast);
+                    continue;
+                },
+                Some('@') => {
+                    advanced += Self::try_parse_blockcall(&program_at, &mut ast);
+                    continue;
                 }
-                None | Some(' ' | '\n' | '\t' | '\r') => {}
-                Some(other) => {
-                    Self::error_with_program(&program.to_ascii_lowercase(), other, next);
-                    break;
-                }
+                None | Some(_) => {}
             }
-            next += 1
+            advanced += 1
         }
         ast
     }
 
     fn build_ast(&mut self, program: String) {
-        let ast = Self::try_parse_body(&program.to_ascii_lowercase(), 0);
+        let ast = Self::try_parse(&program.to_ascii_lowercase());
         self.ast = Box::new(ast);
     }
 
@@ -208,7 +216,8 @@ impl Deadfish {
     fn run(&mut self) {
         let mut next = 0usize;
         while next < self.ast.len() {
-            let tok = &self.ast[next];
+            // let tok = self.ast[next];
+            let tok = &mut self.ast.get(next).unwrap();
             match tok {
                 Ast::Reset => self.stack.push(0),
                 Ast::Dec => self.stack.push(self.peak() - 1),
@@ -217,10 +226,16 @@ impl Deadfish {
                 Ast::JumpStart => next = 0,
                 Ast::Out => self.output_peaked(),
                 Ast::Print => self.output_peaked_ascii(),
-                other => {
-                    // unimplemented!("this token is not yet implemented")
-                    eprintln!("operation not supported yet : {:#?}", other);
-                    break;
+                Ast::BlockDef { identifier, body } => {
+                    let cloned_body = body.clone();
+                    println!("cloned : {:?}", cloned_body);
+                    self.table.insert(identifier.to_string(), cloned_body);
+                    println!("table : {:#?}", self.table);
+                }
+                Ast::BlockCall { identifier } => {
+                    let (ident, ast) = self.table.get_key_value(identifier).unwrap();
+                    println!("ast to apply : ident: {:?} -> {:?}", ident, ast);
+                    // TODO: compile indent_ast program stack return addr & appy to main self.stack
                 }
             }
 
@@ -271,6 +286,7 @@ fn repl() -> rustyline::Result<()> {
                         println!("type help to print this help");
                         println!("type ast to print currently-parsed AST");
                         println!("type CTRL-s to go into multi line mode");
+
                     }
                     "ast" => {
                         println!("{:?}", fish.ast);
