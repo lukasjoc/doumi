@@ -1,0 +1,42 @@
+# Print this pattern repeatedly
+#
+#   0     0
+#  000   000
+# 00000 00000
+#   0  00000
+#  000  000
+# 00000  0
+
+r
+
+# newline ascii
+(nl;
+    riiiiiiiiiipr
+)
+
+# space ascii
+(spc;
+    riiiiiisddddpr
+)
+
+# double-space ascii
+(dspc;
+    riiiiiisddddpr
+    riiiiiisddddpr
+)
+
+# print base
+(base; ooooo).
+
+# top part
+@dspc. o @dspc. @dspc. @spc. o  @nl.
+@spc. ooo @dspc. @spc. ooo      @nl.
+@base. @spc. @base.             @nl.
+
+# bottom part
+@dspc. o @dspc. @base.          @nl.
+@spc. ooo @dspc. ooo            @nl.
+@base. @dspc. o                 @nl.
+
+j # repeat
+

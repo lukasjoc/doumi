@@ -59,4 +59,17 @@ ipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipip
 ipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipip
 ```
 
+"Known-Blocks"
+---
+```bash
+r
+is
+(a; iiii) # define block call it a
+ii
+@a. # call and apply to main stack
+```
+- Caveats: 
+    1. Nested Known-Blocks not supported
+    1. Calling global Known-Blocks in other Known-Blocks not supported
+
 More examples [here](./testprograms)

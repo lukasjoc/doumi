@@ -1,20 +1,15 @@
 #![allow(dead_code)]
 #![allow(unused_assignments)]
 
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
-use std::collections::HashMap;
 
 use clap::{Parser, Subcommand, ValueEnum};
 use rustyline::error::ReadlineError;
 use rustyline::validate::MatchingBracketValidator;
 use rustyline::{Cmd, Editor, EventHandler, KeyCode, KeyEvent, Modifiers};
 use rustyline_derive::{Completer, Helper, Highlighter, Hinter, Validator};
-
-// TODO: save some meta info in the ast
-// #[derive(Debug)]
-// struct ParseInfo {pos: i64}
-// Dec(ParseInfo) ...
 
 #[derive(Debug, Clone)]
 enum Ast {
@@ -34,10 +29,10 @@ enum Ast {
     },
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 struct Deadfish {
     stack: Box<Vec<i64>>,
-    table: Box<HashMap<String, Box<Vec<Ast>> >>,
+    table: Box<HashMap<String, Deadfish>>,
     ast: Box<Vec<Ast>>,
 }
 
@@ -87,7 +82,7 @@ impl Deadfish {
                 match tok {
                     Some(';') => return ident,
                     None | Some(' ') => {}
-                    Some(other) => ident += &other.to_string()
+                    Some(other) => ident += &other.to_string(),
                 }
                 advance += 1;
             }
@@ -100,7 +95,9 @@ impl Deadfish {
             match tok {
                 Some('(') => {
                     advance += 1;
-                    let current_program_at = &mut program_at.get(advance..program_at.len()).unwrap();
+                    let current_program_at = &mut program_at
+                        .get(advance..program_at.len())
+                        .unwrap();
                     identifier = try_parse_identifier(current_program_at);
                     continue;
                 }
@@ -111,7 +108,10 @@ impl Deadfish {
                 }
                 Some(')') => {
                     advance += 1;
-                    let blockdef = Ast::BlockDef { identifier, body: Box::new(body) };
+                    let blockdef = Ast::BlockDef {
+                        identifier,
+                        body: Box::new(body),
+                    };
                     ast.push(blockdef);
                     break;
                 }
@@ -134,7 +134,7 @@ impl Deadfish {
                 match tok {
                     Some('.') => return ident,
                     None | Some('@' | ' ') => {}
-                    Some(other) => ident += &other.to_string()
+                    Some(other) => ident += &other.to_string(),
                 }
                 advance += 1;
             }
@@ -145,7 +145,9 @@ impl Deadfish {
             match tok {
                 Some('@') => {
                     advance += 1;
-                    let current_program_at = &mut program_at.get(advance..program_at.len()).unwrap();
+                    let current_program_at = &mut program_at
+                        .get(advance..program_at.len())
+                        .unwrap();
                     identifier = try_parse_identifier(current_program_at);
                     continue;
                 }
@@ -180,23 +182,24 @@ impl Deadfish {
                 Some('#') => {
                     advanced += Self::try_parse_comment(&program_at);
                     continue;
-                },
+                }
                 Some('(') => {
                     advanced += Self::try_parse_blockdef(&program_at, &mut ast);
                     continue;
-                },
+                }
                 Some('@') => {
                     advanced += Self::try_parse_blockcall(&program_at, &mut ast);
                     continue;
                 }
-                None | Some(_) => {}
+                Some(')') => break,
+                None | Some(_) => {},
             }
             advanced += 1
         }
         ast
     }
 
-    fn build_ast(&mut self, program: String) {
+    fn from_string(&mut self, program: String) {
         let ast = Self::try_parse(&program.to_ascii_lowercase());
         self.ast = Box::new(ast);
     }
@@ -213,11 +216,19 @@ impl Deadfish {
         print!("{}", char::from(self.peak() as u8));
     }
 
+    fn check_bounds(&mut self) {
+        // checking for the deadfish intrinsics
+        if self.peak() < 0 || self.peak() == 256 {
+            self.stack.push(0);
+        }
+    }
+
     fn run(&mut self) {
         let mut next = 0usize;
         while next < self.ast.len() {
             // let tok = self.ast[next];
             let tok = &mut self.ast.get(next).unwrap();
+            // println!("running on token: {:?}", tok);
             match tok {
                 Ast::Reset => self.stack.push(0),
                 Ast::Dec => self.stack.push(self.peak() - 1),
@@ -227,22 +238,26 @@ impl Deadfish {
                 Ast::Out => self.output_peaked(),
                 Ast::Print => self.output_peaked_ascii(),
                 Ast::BlockDef { identifier, body } => {
-                    let cloned_body = body.clone();
-                    println!("cloned : {:?}", cloned_body);
-                    self.table.insert(identifier.to_string(), cloned_body);
-                    println!("table : {:#?}", self.table);
+                    let mut fish = Deadfish::new();
+                    fish.ast = body.clone();
+                    self.table.insert(identifier.to_string(), fish);
                 }
                 Ast::BlockCall { identifier } => {
-                    let (ident, ast) = self.table.get_key_value(identifier).unwrap();
-                    println!("ast to apply : ident: {:?} -> {:?}", ident, ast);
-                    // TODO: compile indent_ast program stack return addr & appy to main self.stack
+                    if self.table.contains_key(identifier) {
+                        let mut fish = self.table.get_mut(identifier).unwrap().clone();
+                        fish.run();
+                        self.stack.push(self.peak() + fish.peak());
+                    } else {
+                        eprintln!(
+                            "Error: Block {:?} must be defined before its been accessed! \
+                            To define a Known-Block use this Syntax: (IDENT; PROGRAM).",
+                            identifier
+                        );
+                        eprintln!("Currently defined Blocks: {:#?}", self.table);
+                    }
                 }
             }
-
-            // checking for the deadfish intrinsics
-            if self.peak() < 0 || self.peak() == 256 {
-                self.stack.push(0);
-            }
+            self.check_bounds();
             next += 1;
         }
     }
@@ -281,19 +296,24 @@ fn repl() -> rustyline::Result<()> {
                         println!("type r to reset");
                         println!("type j jump to the start again");
                         println!("type o to ouput raw value");
-                        println!("type p to output value utf-8 decoded (fallback to raw, when output is not in the range {:?}-{:?} is automatic)", u8::MIN, u8::MAX);
+                        println!(
+                            "type p to output the extended-ASCII Symbol \
+                            (fallback to raw, when output is not in the \
+                            range {:?}-{:?} is automatic)",
+                            u8::MIN,
+                            u8::MAX
+                        );
                         println!("type # to comment something");
                         println!("type help to print this help");
                         println!("type ast to print currently-parsed AST");
                         println!("type CTRL-s to go into multi line mode");
-
                     }
                     "ast" => {
                         println!("{:?}", fish.ast);
                     }
                     _ => {
                         // TODO: wrap these in Results to handle errors better
-                        fish.build_ast(line.to_string());
+                        fish.from_string(line.to_string());
                         fish.run();
                         print!("\n");
                     }
@@ -344,7 +364,7 @@ fn main() {
             if let Some(file) = file.as_deref() {
                 let mut fish = Deadfish::new();
                 let program = fs::read_to_string(file).expect("could not read sourcefile provided");
-                fish.build_ast(program);
+                fish.from_string(program);
                 match emit {
                     Some(EmitOpts::Ast) => {
                         println!("{:?}", fish.ast);
