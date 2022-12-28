@@ -12,6 +12,5 @@ out
 !README
 !Makefile
 !build
-!scripts/*
 target/
 *.rustfmt
