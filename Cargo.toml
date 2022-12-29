@@ -1,8 +1,7 @@
 [package]
 name = "doumi"
-version = "0.1.0"
+version = "0.2.0"
 description = "A very simple superset text-format based on a deadfish interpreter"
-author = "lukasjoc <lukasjoc.com>"
 edition = "2021"
 
 [dependencies]
