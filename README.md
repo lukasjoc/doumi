@@ -47,6 +47,29 @@ dddddddd                      p   # d
 r iiiiiisddd                  p   # !
 ```
 
+Extended ASCII
+---
+```bash
+iiisiisiiiiiii # 128
+
+# print the extended ascii chars
+#   ¡¢£¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿ
+pipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipip
+ipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipip
+ipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipipip
+```
+
+"Known-Blocks"
+---
+```bash
+r
+is
+(a; iiii) # define block call it a
+ii
+@a. # call and apply to main stack
+```
+- Caveats: 
+    1. Nested Known-Blocks not supported
+    1. Calling global Known-Blocks in other Known-Blocks not supported
 
 More examples [here](./testprograms)
-
