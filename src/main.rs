@@ -6,9 +6,9 @@ use std::fs;
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand, ValueEnum};
+use rustyline::{Cmd, Editor, EventHandler, KeyCode, KeyEvent, Modifiers};
 use rustyline::error::ReadlineError;
 use rustyline::validate::MatchingBracketValidator;
-use rustyline::{Cmd, Editor, EventHandler, KeyCode, KeyEvent, Modifiers};
 use rustyline_derive::{Completer, Helper, Highlighter, Hinter, Validator};
 
 #[derive(Debug, Clone)]
@@ -270,25 +270,38 @@ struct InputValidator {
 }
 
 fn repl() -> rustyline::Result<()> {
-    let h = InputValidator {
+    let config = rustyline::Config::builder()
+        .max_history_size(2_5000)
+        .history_ignore_dups(true)
+        .history_ignore_space(true)
+        .completion_type(rustyline::config::CompletionType::List)
+        .edit_mode(rustyline::config::EditMode::Vi)
+        .auto_add_history(true)
+        .bell_style(rustyline::config::BellStyle::None)
+        .tab_stop(4)
+        .indent_size(4)
+        .build();
+
+    let mut rl = Editor::with_config(config)?;
+    let input_validator = InputValidator {
         brackets: MatchingBracketValidator::new(),
     };
-    let mut rl = Editor::new()?;
-
-    rl.set_helper(Some(h));
+    rl.set_helper(
+        Some(input_validator)
+    );
     rl.bind_sequence(
         KeyEvent(KeyCode::Char('s'), Modifiers::CTRL),
         EventHandler::Simple(Cmd::Newline),
     );
 
     let mut fish = Deadfish::new();
-    print!("Doumi v0.1.0\n");
-    print!("Type  help  for info about available commands\n\n");
+    println!("Doumi v0.2.0");
+    println!("Type  help  for info about available commands");
     loop {
         let readline = rl.readline(">>> ");
         match readline {
             Ok(line) => {
-                match line.as_str().trim_end() {
+                match line.trim_end() {
                     "help" => {
                         println!("type i to increase");
                         println!("type d to decrease");
@@ -312,7 +325,6 @@ fn repl() -> rustyline::Result<()> {
                         println!("{:?}", fish.ast);
                     }
                     _ => {
-                        // TODO: wrap these in Results to handle errors better
                         fish.from_string(line.to_string());
                         fish.run();
                         print!("\n");
